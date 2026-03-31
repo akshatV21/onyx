@@ -16,6 +16,14 @@ export class AuthController {
     return { success: true, data: { access: tokens.access } }
   }
 
+  @Post('login')
+  async httpLogin(@Body() data: RegisterDto, @Res() res: Response): HttpResponse {
+    const tokens = await this.authService.login(data)
+    this.setRefreshToken(res, tokens.refresh)
+
+    return { success: true, data: { access: tokens.access } }
+  }
+
   private setRefreshToken(res: Response, refresh: string) {
     res.cookie('refreshToken', refresh, {
       httpOnly: true,

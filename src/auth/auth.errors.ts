@@ -5,3 +5,9 @@ export class UnqiueUsernameError extends BadRequestException {
     super({ error: 'UniqueUsernameError' })
   }
 }
+
+export class InvalidCredentialsError extends BadRequestException {
+  constructor() {
+    super({ error: 'InvalidCredentialsError' })
+  }
+}

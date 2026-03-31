@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common'
 import { DatabaseService } from 'src/database/database.service'
 import { RegisterDto } from './dtos/register.dto'
 import { UNIQUE_ERR_CODE } from 'src/utils/constants'
-import { UnqiueUsernameError } from './auth.errors'
+import { InvalidCredentialsError, UnqiueUsernameError } from './auth.errors'
 import { JwtService } from '@nestjs/jwt'
-import { hash, hashSync } from 'bcrypt'
+import { compareSync, hash, hashSync } from 'bcrypt'
+import { LoginDto } from './dtos/login.dto'
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,23 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id)
     await this.updateRefreshToken(user.id, tokens.refresh)
+
+    return tokens
+  }
+
+  async login(data: LoginDto) {
+    const registered = await this.db.user.findUnique({
+      where: { username: data.username },
+      select: { id: true, password: true },
+    })
+
+    if (!registered) throw new InvalidCredentialsError()
+
+    const match = compareSync(data.password, registered.password)
+    if (!match) throw new InvalidCredentialsError()
+
+    const tokens = await this.generateTokens(registered.id)
+    await this.updateRefreshToken(registered.id, tokens.refresh)
 
     return tokens
   }
