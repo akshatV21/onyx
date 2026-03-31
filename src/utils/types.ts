@@ -8,3 +8,7 @@ export type AuthOptions = {
   refresh?: boolean
   isOpen?: boolean
 }
+
+export type User = {
+  id: string
+}

@@ -47,6 +47,23 @@ export class AuthService {
     return tokens
   }
 
+  async refresh(token: string, userId: string) {
+    const user = await this.db.user.findUnique({ where: { id: userId }, select: { refresh: true } })
+    if (!user || !user.refresh) throw new InvalidCredentialsError()
+
+    const match = compareSync(token, user.refresh)
+    if (!match) throw new InvalidCredentialsError()
+
+    const tokens = await this.generateTokens(userId)
+    await this.updateRefreshToken(userId, tokens.refresh)
+
+    return tokens
+  }
+
+  async logout(userId: string) {
+    await this.db.user.updateMany({ where: { id: userId, refresh: { not: null } }, data: { refresh: null } })
+  }
+
   private async generateTokens(userId: string) {
     const payload = { id: userId }
 

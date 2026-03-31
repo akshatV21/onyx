@@ -1,9 +1,11 @@
 import { Body, Controller, Post, Res } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dtos/register.dto'
-import { HttpResponse } from 'src/utils/types'
+import { HttpResponse, User } from 'src/utils/types'
 import { Response } from 'express'
 import { Auth } from './decorators/auth.decorator'
+import { AuthRefresh } from './decorators/auth-token.decorator'
+import { AuthUser } from './decorators/auth-user.decorator'
 
 @Controller('auth')
 export class AuthController {
@@ -27,8 +29,26 @@ export class AuthController {
     return { success: true, data: { access: tokens.access } }
   }
 
+  @Post('refresh')
+  @Auth({ refresh: true })
+  async httpRefresh(@AuthRefresh() refresh: string, @AuthUser() user: User, @Res() res: Response): HttpResponse {
+    const tokens = await this.authService.refresh(refresh, user.id)
+    this.setRefreshToken(res, tokens.refresh)
+
+    return { success: true, data: { access: tokens.access } }
+  }
+
+  @Post('logout')
+  @Auth()
+  async httpLogout(@AuthUser() user: User, @Res() res: Response): HttpResponse {
+    await this.authService.logout(user.id)
+    res.clearCookie('refresh')
+
+    return { success: true }
+  }
+
   private setRefreshToken(res: Response, refresh: string) {
-    res.cookie('refreshToken', refresh, {
+    res.cookie('refresh', refresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
