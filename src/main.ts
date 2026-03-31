@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import * as morgan from 'morgan'
 import { ConsoleLogger, Logger } from '@nestjs/common'
 import { CustomValidationPipe } from './utils/pipe'
+import * as cookieParser from 'cookie-parser'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: new ConsoleLogger({ prefix: 'Onyx' }) })
@@ -15,6 +16,7 @@ async function bootstrap() {
 
   app.use(helmet())
   app.use(morgan('dev'))
+  app.use(cookieParser())
 
   app.setGlobalPrefix('api')
   app.useGlobalPipes(new CustomValidationPipe())
