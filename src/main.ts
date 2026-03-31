@@ -14,6 +14,8 @@ async function bootstrap() {
   const PORT = config.getOrThrow('PORT')
   const logger = new Logger('Bootstrap')
 
+  app.enableCors({ origin: 'http://localhost:5173', credentials: true })
+
   app.use(helmet())
   app.use(morgan('dev'))
   app.use(cookieParser())

@@ -13,7 +13,7 @@ export class AuthController {
 
   @Post('register')
   @Auth({ isOpen: true })
-  async httpRegister(@Body() data: RegisterDto, @Res() res: Response): HttpResponse {
+  async httpRegister(@Body() data: RegisterDto, @Res({ passthrough: true }) res: Response): HttpResponse {
     const tokens = await this.authService.register(data)
     this.setRefreshToken(res, tokens.refresh)
 
@@ -22,7 +22,7 @@ export class AuthController {
 
   @Post('login')
   @Auth({ isOpen: true })
-  async httpLogin(@Body() data: RegisterDto, @Res() res: Response): HttpResponse {
+  async httpLogin(@Body() data: RegisterDto, @Res({ passthrough: true }) res: Response): HttpResponse {
     const tokens = await this.authService.login(data)
     this.setRefreshToken(res, tokens.refresh)
 
@@ -31,7 +31,11 @@ export class AuthController {
 
   @Post('refresh')
   @Auth({ refresh: true })
-  async httpRefresh(@AuthRefresh() refresh: string, @AuthUser() user: User, @Res() res: Response): HttpResponse {
+  async httpRefresh(
+    @AuthRefresh() refresh: string,
+    @AuthUser() user: User,
+    @Res({ passthrough: true }) res: Response,
+  ): HttpResponse {
     const tokens = await this.authService.refresh(refresh, user.id)
     this.setRefreshToken(res, tokens.refresh)
 
@@ -40,7 +44,7 @@ export class AuthController {
 
   @Post('logout')
   @Auth()
-  async httpLogout(@AuthUser() user: User, @Res() res: Response): HttpResponse {
+  async httpLogout(@AuthUser() user: User, @Res({ passthrough: true }) res: Response): HttpResponse {
     await this.authService.logout(user.id)
     res.clearCookie('refresh')
 

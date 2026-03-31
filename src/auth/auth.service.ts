@@ -4,7 +4,7 @@ import { RegisterDto } from './dtos/register.dto'
 import { UNIQUE_ERR_CODE } from 'src/utils/constants'
 import { InvalidCredentialsError, UnqiueUsernameError } from './auth.errors'
 import { JwtService } from '@nestjs/jwt'
-import { compareSync, hash, hashSync } from 'bcrypt'
+import { compareSync, hashSync } from 'bcrypt'
 import { LoginDto } from './dtos/login.dto'
 import { ConfigService } from '@nestjs/config'
 
