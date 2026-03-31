@@ -3,12 +3,14 @@ import { AuthService } from './auth.service'
 import { RegisterDto } from './dtos/register.dto'
 import { HttpResponse } from 'src/utils/types'
 import { Response } from 'express'
+import { Auth } from './decorators/auth.decorator'
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Auth({ isOpen: true })
   async httpRegister(@Body() data: RegisterDto, @Res() res: Response): HttpResponse {
     const tokens = await this.authService.register(data)
     this.setRefreshToken(res, tokens.refresh)
@@ -17,6 +19,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Auth({ isOpen: true })
   async httpLogin(@Body() data: RegisterDto, @Res() res: Response): HttpResponse {
     const tokens = await this.authService.login(data)
     this.setRefreshToken(res, tokens.refresh)

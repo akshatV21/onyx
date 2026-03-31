@@ -3,3 +3,8 @@ export type HttpResponse = Promise<{
   error?: string
   data?: Record<string, any>
 }>
+
+export type AuthOptions = {
+  refresh?: boolean
+  isOpen?: boolean
+}

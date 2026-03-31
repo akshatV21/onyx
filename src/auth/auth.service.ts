@@ -6,12 +6,14 @@ import { InvalidCredentialsError, UnqiueUsernameError } from './auth.errors'
 import { JwtService } from '@nestjs/jwt'
 import { compareSync, hash, hashSync } from 'bcrypt'
 import { LoginDto } from './dtos/login.dto'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly db: DatabaseService,
     private readonly jwt: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async register(data: RegisterDto) {
@@ -49,8 +51,8 @@ export class AuthService {
     const payload = { id: userId }
 
     const [access, refresh] = await Promise.all([
-      this.jwt.signAsync(payload, { secret: process.env.JWT_ACCESS_SECRET, expiresIn: '15m' }),
-      this.jwt.signAsync(payload, { secret: process.env.JWT_REFRESH_SECRET, expiresIn: '7d' }),
+      this.jwt.signAsync(payload, { secret: this.config.getOrThrow('JWT_ACCESS_SECRET'), expiresIn: '15m' }),
+      this.jwt.signAsync(payload, { secret: this.config.getOrThrow('JWT_REFRESH_SECRET'), expiresIn: '7d' }),
     ])
 
     return { access, refresh }
