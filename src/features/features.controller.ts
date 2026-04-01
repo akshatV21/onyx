@@ -6,6 +6,7 @@ import { AuthUser } from 'src/auth/decorators/auth-user.decorator'
 import { HttpResponse, User } from 'src/utils/types'
 import { QueryFeaturesDto } from './dtos/query-features.dto'
 import { UpdateFeaturePriorityDto } from './dtos/update-priority.dto'
+import { UpdateFeatureStatusDto } from './dtos/update-status.dto'
 
 @Controller('features')
 export class FeaturesController {
@@ -29,6 +30,13 @@ export class FeaturesController {
   @Auth()
   async httpUpdatePriority(@Query() query: UpdateFeaturePriorityDto, @AuthUser() user: User): HttpResponse {
     await this.featuresService.priority(query, user)
+    return { success: true }
+  }
+
+  @Patch('status')
+  @Auth()
+  async httpUpdateStatus(@Query() query: UpdateFeatureStatusDto, @AuthUser() user: User): HttpResponse {
+    await this.featuresService.status(query, user)
     return { success: true }
   }
 }

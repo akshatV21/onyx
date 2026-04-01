@@ -5,6 +5,7 @@ import { CannotModifyProjectError, FeatureNotFoundError, ProjectNotFoundError } 
 import { User } from 'src/utils/types'
 import { QueryFeaturesDto } from './dtos/query-features.dto'
 import { UpdateFeaturePriorityDto } from './dtos/update-priority.dto'
+import { UpdateFeatureStatusDto } from './dtos/update-status.dto'
 
 @Injectable()
 export class FeaturesService {
@@ -70,5 +71,16 @@ export class FeaturesService {
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
 
     await this.db.feature.update({ where: { id: data.featureId }, data: { priority: data.priority } })
+  }
+
+  async status(data: UpdateFeatureStatusDto, user: User) {
+    const feature = await this.db.feature.findUnique({
+      where: { id: data.featureId },
+      select: { project: { select: { userId: true } } },
+    })
+
+    if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+
+    await this.db.feature.update({ where: { id: data.featureId }, data: { status: data.status } })
   }
 }
