@@ -4,6 +4,8 @@ import { CreateProjectDto } from './dtos/create-project.dto'
 import { User } from 'src/utils/types'
 import { QueryProjectsDto } from './dtos/query-projects.dto'
 import { ProjectStatus } from 'generated/prisma/enums'
+import { UpdateProjectStatusDto } from './dtos/update-project-status.dto'
+import { ProjectNotFoundError } from './projects.errors'
 
 @Injectable()
 export class ProjectsService {
@@ -36,5 +38,19 @@ export class ProjectsService {
     }
 
     return { projects, cursor }
+  }
+
+  async status(data: UpdateProjectStatusDto, user: User) {
+    const project = await this.db.project.findUnique({
+      where: { id: data.projectId, userId: user.id },
+      select: { id: true },
+    })
+
+    if (!project) throw new ProjectNotFoundError()
+
+    await this.db.project.update({
+      where: { id: data.projectId },
+      data: { status: data.status },
+    })
   }
 }
