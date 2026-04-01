@@ -3,6 +3,7 @@ import { DatabaseService } from 'src/database/database.service'
 import { CreateTaskDto } from './dtos/create-task.dto'
 import { User } from 'src/utils/types'
 import { CannotModifyProjectError, FeatureNotFoundError } from './tasks.errors'
+import { QueryTasksDto } from './dtos/query-tasks.dto'
 
 @Injectable()
 export class TasksService {
@@ -38,5 +39,24 @@ export class TasksService {
     ])
 
     return task
+  }
+
+  async list(query: QueryTasksDto, user: User) {
+    const limit = query.limit ?? 20
+
+    const tasks = await this.db.task.findMany({
+      where: { featureId: query.featureId },
+      cursor: query.cursor ? { id: query.cursor } : undefined,
+      take: limit + 1,
+      orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+    })
+
+    let cursor: string | null = null
+    if (tasks.length > limit) {
+      const next = tasks.pop()!
+      cursor = next.id
+    }
+
+    return { tasks, cursor }
   }
 }
