@@ -66,6 +66,8 @@ model ProjectStats {
 
   projectId String  @unique
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 enum FeatureStatus {
@@ -113,6 +115,8 @@ model FeatureStats {
 
   featureId String  @unique
   feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@index([featureId])
 }
 
 enum TaskStatus {
