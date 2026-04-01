@@ -25,7 +25,10 @@ export class FeaturesService {
 
       await Promise.all([
         txn.featureStats.create({ data: { featureId: feature.id } }),
-        txn.projectStats.update({ where: { projectId: data.projectId }, data: { ftotal: { increment: 1 } } }),
+        txn.projectStats.update({
+          where: { projectId: data.projectId },
+          data: { ftotal: { increment: 1 }, fplanned: { increment: 1 } },
+        }),
       ])
 
       return feature
@@ -76,11 +79,17 @@ export class FeaturesService {
   async status(data: UpdateFeatureStatusDto, user: User) {
     const feature = await this.db.feature.findUnique({
       where: { id: data.featureId },
-      select: { project: { select: { userId: true } } },
+      select: { status: true, project: { select: { id: true, userId: true } } },
     })
 
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
 
-    await this.db.feature.update({ where: { id: data.featureId }, data: { status: data.status } })
+    await this.db.$transaction([
+      this.db.feature.update({ where: { id: data.featureId }, data: { status: data.status } }),
+      this.db.projectStats.update({
+        where: { projectId: feature.project.id },
+        data: { [`f${data.status}`]: { increment: 1 }, [`f${feature.status}`]: { decrement: 1 } },
+      }),
+    ])
   }
 }
