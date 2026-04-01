@@ -51,7 +51,7 @@ export class FeaturesService {
       where: { projectId: query.projectId, status: query.status },
       cursor: query.cursor ? { id: query.cursor } : undefined,
       take: limit + 1,
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ priority: 'desc' }, { updatedAt: 'desc' }],
       include: { stats: { omit: { id: true, featureId: true } } },
     })
 

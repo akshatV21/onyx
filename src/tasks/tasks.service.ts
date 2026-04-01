@@ -48,7 +48,7 @@ export class TasksService {
       where: { featureId: query.featureId },
       cursor: query.cursor ? { id: query.cursor } : undefined,
       take: limit + 1,
-      orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+      orderBy: [{ status: 'asc' }, { updatedAt: 'asc' }],
     })
 
     let cursor: string | null = null
