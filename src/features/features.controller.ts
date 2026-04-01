@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common'
 import { FeaturesService } from './features.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
 import { CreateFeatureDto } from './dtos/create-feature.dto'
 import { AuthUser } from 'src/auth/decorators/auth-user.decorator'
 import { HttpResponse, User } from 'src/utils/types'
 import { QueryFeaturesDto } from './dtos/query-features.dto'
+import { UpdateFeaturePriorityDto } from './dtos/update-priority.dto'
 
 @Controller('features')
 export class FeaturesController {
@@ -22,5 +23,12 @@ export class FeaturesController {
   async httpListFeatures(@Query() query: QueryFeaturesDto, @AuthUser() user: User): HttpResponse {
     const result = await this.featuresService.list(query, user)
     return { success: true, data: result }
+  }
+
+  @Patch('priority')
+  @Auth()
+  async httpUpdatePriority(@Query() query: UpdateFeaturePriorityDto, @AuthUser() user: User): HttpResponse {
+    await this.featuresService.priority(query, user)
+    return { success: true }
   }
 }

@@ -11,3 +11,9 @@ export class CannotModifyProjectError extends BadRequestException {
     super({ error: 'CannotModifyProject' })
   }
 }
+
+export class FeatureNotFoundError extends BadRequestException {
+  constructor() {
+    super({ error: 'FeatureNotFound' })
+  }
+}

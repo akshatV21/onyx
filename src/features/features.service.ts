@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common'
 import { DatabaseService } from 'src/database/database.service'
 import { CreateFeatureDto } from './dtos/create-feature.dto'
-import { CannotModifyProjectError, ProjectNotFoundError } from './features.errors'
+import { CannotModifyProjectError, FeatureNotFoundError, ProjectNotFoundError } from './features.errors'
 import { User } from 'src/utils/types'
 import { QueryFeaturesDto } from './dtos/query-features.dto'
+import { UpdateFeaturePriorityDto } from './dtos/update-priority.dto'
 
 @Injectable()
 export class FeaturesService {
@@ -58,5 +59,16 @@ export class FeaturesService {
     }
 
     return { features, cursor }
+  }
+
+  async priority(data: UpdateFeaturePriorityDto, user: User) {
+    const feature = await this.db.feature.findUnique({
+      where: { id: data.featureId },
+      select: { project: { select: { userId: true } } },
+    })
+
+    if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+
+    await this.db.feature.update({ where: { id: data.featureId }, data: { priority: data.priority } })
   }
 }
