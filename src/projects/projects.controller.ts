@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common'
 import { ProjectsService } from './projects.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
 import { CreateProjectDto } from './dtos/create-project.dto'
@@ -27,7 +27,7 @@ export class ProjectsController {
 
   @Get(':id')
   @Auth()
-  async httpGetProject(@Query('id') projectId: string, @AuthUser() user: User) {
+  async httpGetProject(@Param('id') projectId: string, @AuthUser() user: User) {
     const project = await this.projectsService.get(projectId, user)
     return { success: true, data: { project } }
   }

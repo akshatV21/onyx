@@ -20,7 +20,11 @@ export class FeaturesService {
 
     const feature = await this.db.$transaction(async txn => {
       const feature = await txn.feature.create({ data })
-      await txn.featureStats.create({ data: { featureId: feature.id } })
+
+      await Promise.all([
+        txn.featureStats.create({ data: { featureId: feature.id } }),
+        txn.projectStats.update({ where: { projectId: data.projectId }, data: { ftotal: { increment: 1 } } }),
+      ])
 
       return feature
     })
