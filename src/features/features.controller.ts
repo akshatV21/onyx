@@ -1,9 +1,10 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query } from '@nestjs/common'
 import { FeaturesService } from './features.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
 import { CreateFeatureDto } from './dtos/create-feature.dto'
 import { AuthUser } from 'src/auth/decorators/auth-user.decorator'
 import { HttpResponse, User } from 'src/utils/types'
+import { QueryFeaturesDto } from './dtos/query-features.dto'
 
 @Controller('features')
 export class FeaturesController {
@@ -14,5 +15,12 @@ export class FeaturesController {
   async httpCreateFeature(@Body() data: CreateFeatureDto, @AuthUser() user: User): HttpResponse {
     const feature = await this.featuresService.create(data, user)
     return { success: true, data: { feature } }
+  }
+
+  @Get('list')
+  @Auth()
+  async httpListFeatures(@Query() query: QueryFeaturesDto, @AuthUser() user: User): HttpResponse {
+    const result = await this.featuresService.list(query, user)
+    return { success: true, data: result }
   }
 }

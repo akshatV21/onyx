@@ -27,7 +27,7 @@ export class ProjectsService {
       where: { userId: user.id, status },
       cursor: query.cursor ? { id: query.cursor } : undefined,
       take: limit + 1,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     })
 
     let cursor: string | null = null

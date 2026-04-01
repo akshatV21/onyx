@@ -3,6 +3,7 @@ import { DatabaseService } from 'src/database/database.service'
 import { CreateFeatureDto } from './dtos/create-feature.dto'
 import { CannotModifyProjectError, ProjectNotFoundError } from './features.errors'
 import { User } from 'src/utils/types'
+import { QueryFeaturesDto } from './dtos/query-features.dto'
 
 @Injectable()
 export class FeaturesService {
@@ -25,5 +26,33 @@ export class FeaturesService {
     })
 
     return feature
+  }
+
+  async list(query: QueryFeaturesDto, user: User) {
+    const limit = query.limit ?? 10
+
+    const project = await this.db.project.findUnique({
+      where: { id: query.projectId, userId: user.id },
+      select: { id: true },
+    })
+
+    if (!project) throw new ProjectNotFoundError()
+
+    const features = await this.db.feature.findMany({
+      where: { projectId: query.projectId, status: query.status },
+      cursor: query.cursor ? { id: query.cursor } : undefined,
+      take: limit + 1,
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      include: { stats: { omit: { id: true, featureId: true } } },
+    })
+
+    let cursor: string | null = null
+
+    if (features.length > limit) {
+      const next = features.pop()!
+      cursor = next.id
+    }
+
+    return { features, cursor }
   }
 }
