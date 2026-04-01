@@ -19,7 +19,6 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tasks     Task[]
 }
 
 enum ProjectStatus {
@@ -37,11 +36,13 @@ model Project {
   description String?
 
   status ProjectStatus @default(planning)
+  stats  ProjectStats?
 
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tasks Task[]
+  tasks    Task[]
+  features Feature[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -49,19 +50,74 @@ model Project {
   @@index([userId, status, updatedAt(sort: Desc)])
 }
 
-enum TaskStatus {
-  todo
+model ProjectStats {
+  id String @id @default(cuid())
+
+  ftotal       Int @default(0)
+  fplanned     Int @default(0)
+  fin_progress Int @default(0)
+  fin_review   Int @default(0)
+  fcompleted   Int @default(0)
+  fdeployed    Int @default(0)
+
+  ttotal     Int @default(0)
+  ttodo      Int @default(0)
+  tcompleted Int @default(0)
+
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+enum FeatureStatus {
+  planned
   in_progress
   in_review
   completed
   deployed
 }
 
-enum TaskPriority {
+enum FeaturePriority {
   low
   medium
   high
   urgent
+}
+
+model Feature {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+
+  status   FeatureStatus   @default(planned)
+  priority FeaturePriority @default(medium)
+  stats    FeatureStats?
+
+  projectId String
+
+  tasks   Task[]
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, status, priority(sort: Desc), updatedAt(sort: Desc)])
+}
+
+model FeatureStats {
+  id String @id @default(cuid())
+
+  ttotal     Int @default(0)
+  ttodo      Int @default(0)
+  tcompleted Int @default(0)
+
+  featureId String  @unique
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+}
+
+enum TaskStatus {
+  todo
+  completed
 }
 
 model Task {
@@ -69,19 +125,18 @@ model Task {
 
   title String
 
-  status   TaskStatus   @default(todo)
-  priority TaskPriority @default(medium)
+  status TaskStatus @default(todo)
 
   due DateTime?
 
-  userId    String
+  featureId String
   projectId String
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId, projectId])
+  @@index([featureId, projectId])
 }
