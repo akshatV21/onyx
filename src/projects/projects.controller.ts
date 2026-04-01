@@ -25,6 +25,13 @@ export class ProjectsController {
     return { success: true, data: result }
   }
 
+  @Get(':id')
+  @Auth()
+  async httpGetProject(@Query('id') projectId: string, @AuthUser() user: User) {
+    const project = await this.projectsService.get(projectId, user)
+    return { success: true, data: { project } }
+  }
+
   @Patch('status')
   @Auth()
   async httpUpdateProjectStatus(@Body() data: UpdateProjectStatusDto, @AuthUser() user: User) {

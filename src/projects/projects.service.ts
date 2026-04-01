@@ -12,8 +12,14 @@ export class ProjectsService {
   constructor(private readonly db: DatabaseService) {}
 
   async create(data: CreateProjectDto, user: User) {
-    const project = await this.db.project.create({
-      data: { title: data.title, description: data.description, userId: user.id },
+    const project = await this.db.$transaction(async txn => {
+      const project = await txn.project.create({
+        data: { title: data.title, description: data.description, userId: user.id },
+      })
+
+      await txn.projectStats.create({ data: { projectId: project.id } })
+
+      return project
     })
 
     return project
@@ -38,6 +44,17 @@ export class ProjectsService {
     }
 
     return { projects, cursor }
+  }
+
+  async get(projectId: string, user: User) {
+    const project = await this.db.project.findUnique({
+      where: { id: projectId, userId: user.id },
+      include: { stats: { omit: { id: true, projectId: true } } },
+    })
+
+    if (!project) throw new ProjectNotFoundError()
+
+    return project
   }
 
   async status(data: UpdateProjectStatusDto, user: User) {
