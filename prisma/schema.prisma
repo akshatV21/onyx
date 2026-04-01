@@ -23,11 +23,11 @@ model User {
 }
 
 enum ProjectStatus {
-  PLANNING
-  ACTIVE
-  PAUSED
-  COMPLETED
-  ARCHIVED
+  planning
+  active
+  paused
+  completed
+  archived
 }
 
 model Project {
@@ -36,7 +36,7 @@ model Project {
   title       String
   description String?
 
-  status ProjectStatus @default(PLANNING)
+  status ProjectStatus @default(planning)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -46,7 +46,7 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId, status])
+  @@index([userId, status, updatedAt(sort: Desc)])
 }
 
 enum TaskStatus {
