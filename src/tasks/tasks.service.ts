@@ -2,9 +2,15 @@ import { Injectable } from '@nestjs/common'
 import { DatabaseService } from 'src/database/database.service'
 import { CreateTaskDto } from './dtos/create-task.dto'
 import { User } from 'src/utils/types'
-import { CannotModifyProjectError, FeatureNotFoundError, TaskNotFoundError } from './tasks.errors'
+import {
+  CannotModifyFeatureError,
+  CannotModifyProjectError,
+  FeatureNotFoundError,
+  TaskNotFoundError,
+} from './tasks.errors'
 import { QueryTasksDto } from './dtos/query-tasks.dto'
-import { ProjectStatus, TaskStatus } from 'generated/prisma/enums'
+import { FeatureStatus, ProjectStatus, TaskStatus } from 'generated/prisma/enums'
+import { featureIsLocked, projectIsLocked } from 'src/utils/functions'
 
 @Injectable()
 export class TasksService {
@@ -16,16 +22,9 @@ export class TasksService {
       select: { status: true, project: { select: { id: true, status: true, userId: true } } },
     })
 
-    if (!feature || feature.status === 'completed' || feature.project.userId !== user.id)
-      throw new FeatureNotFoundError()
-
-    if (
-      feature.project.status === 'completed' ||
-      feature.project.status === 'paused' ||
-      feature.project.status === 'archived'
-    ) {
-      throw new CannotModifyProjectError()
-    }
+    if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+    if (projectIsLocked(feature.project.status)) throw new CannotModifyProjectError()
+    if (featureIsLocked(feature.status)) throw new CannotModifyFeatureError()
 
     const [task] = await this.db.$transaction([
       this.db.task.create({ data: { ...data, projectId: feature.project.id } }),
@@ -43,6 +42,13 @@ export class TasksService {
   }
 
   async list(query: QueryTasksDto, user: User) {
+    const feature = await this.db.feature.findUnique({
+      where: { id: query.featureId },
+      select: { project: { select: { userId: true } } },
+    })
+
+    if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+
     const limit = query.limit ?? 20
 
     const tasks = await this.db.task.findMany({
@@ -64,12 +70,16 @@ export class TasksService {
   async delete(taskId: string, user: User) {
     const task = await this.db.task.findUnique({
       where: { id: taskId },
-      select: { featureId: true, project: { select: { id: true, userId: true, status: true } }, status: true },
+      select: {
+        feature: { select: { id: true, status: true } },
+        project: { select: { id: true, userId: true, status: true } },
+        status: true,
+      },
     })
 
     if (!task || task.project.userId !== user.id) throw new TaskNotFoundError()
-    if (task.project.status !== ProjectStatus.planning && task.project.status !== ProjectStatus.active)
-      throw new CannotModifyProjectError()
+    if (projectIsLocked(task.project.status)) throw new CannotModifyProjectError()
+    if (featureIsLocked(task.feature.status)) throw new CannotModifyProjectError()
 
     const completed = task.status === TaskStatus.completed
     const data = {
@@ -81,7 +91,7 @@ export class TasksService {
     await this.db.$transaction([
       this.db.task.delete({ where: { id: taskId } }),
       this.db.projectStats.update({ where: { projectId: task.project.id }, data }),
-      this.db.featureStats.update({ where: { featureId: task.featureId }, data }),
+      this.db.featureStats.update({ where: { featureId: task.feature.id }, data }),
     ])
   }
 }
