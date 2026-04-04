@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common'
 import { DatabaseService } from 'src/database/database.service'
 import { CreateFeatureDto } from './dtos/create-feature.dto'
-import { CannotModifyProjectError, FeatureNotFoundError, ProjectNotFoundError } from './features.errors'
+import {
+  CannotModifyFeatureError,
+  CannotModifyProjectError,
+  FeatureNotFoundError,
+  ProjectNotFoundError,
+} from './features.errors'
 import { User } from 'src/utils/types'
 import { QueryFeaturesDto } from './dtos/query-features.dto'
 import { UpdateFeaturePriorityDto } from './dtos/update-priority.dto'
 import { UpdateFeatureStatusDto } from './dtos/update-status.dto'
+import { FeatureStatus, ProjectStatus } from 'generated/prisma/enums'
 
 @Injectable()
 export class FeaturesService {
@@ -68,10 +74,14 @@ export class FeaturesService {
   async priority(data: UpdateFeaturePriorityDto, user: User) {
     const feature = await this.db.feature.findUnique({
       where: { id: data.featureId },
-      select: { project: { select: { userId: true } } },
+      select: { status: true, project: { select: { userId: true, status: true } } },
     })
 
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+    if (feature.status !== FeatureStatus.planned && feature.status !== FeatureStatus.in_progress)
+      throw new CannotModifyFeatureError()
+    if (feature.project.status !== ProjectStatus.planning && feature.project.status !== ProjectStatus.active)
+      throw new CannotModifyProjectError()
 
     await this.db.feature.update({ where: { id: data.featureId }, data: { priority: data.priority } })
   }
@@ -79,16 +89,51 @@ export class FeaturesService {
   async status(data: UpdateFeatureStatusDto, user: User) {
     const feature = await this.db.feature.findUnique({
       where: { id: data.featureId },
-      select: { status: true, project: { select: { id: true, userId: true } } },
+      select: { status: true, project: { select: { id: true, userId: true, status: true } } },
     })
 
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+    if (feature.project.status !== ProjectStatus.planning && feature.project.status !== ProjectStatus.active)
+      throw new CannotModifyProjectError()
 
     await this.db.$transaction([
       this.db.feature.update({ where: { id: data.featureId }, data: { status: data.status } }),
       this.db.projectStats.update({
         where: { projectId: feature.project.id },
         data: { [`f${data.status}`]: { increment: 1 }, [`f${feature.status}`]: { decrement: 1 } },
+      }),
+    ])
+  }
+
+  async delete(featureId: string, user: User) {
+    const feature = await this.db.feature.findUnique({
+      where: { id: featureId },
+      select: {
+        status: true,
+        project: { select: { id: true, userId: true, status: true } },
+        stats: { select: { ttotal: true, ttodo: true, tcompleted: true } },
+      },
+    })
+
+    if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
+
+    if (feature.status !== FeatureStatus.planned && feature.status !== FeatureStatus.in_progress)
+      throw new CannotModifyFeatureError()
+
+    if (feature.project.status !== ProjectStatus.planning && feature.project.status !== ProjectStatus.active)
+      throw new CannotModifyProjectError()
+
+    await this.db.$transaction([
+      this.db.feature.delete({ where: { id: featureId } }),
+      this.db.projectStats.update({
+        where: { projectId: feature.project.id },
+        data: {
+          ftotal: { decrement: 1 },
+          [`f${feature.status}`]: { decrement: 1 },
+          ttotal: { decrement: feature.stats?.ttotal },
+          ttodo: { decrement: feature.stats?.ttodo },
+          tcompleted: { decrement: feature.stats?.tcompleted },
+        },
       }),
     ])
   }

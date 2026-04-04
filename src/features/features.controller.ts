@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common'
 import { FeaturesService } from './features.service'
 import { Auth } from 'src/auth/decorators/auth.decorator'
 import { CreateFeatureDto } from './dtos/create-feature.dto'
@@ -37,6 +37,13 @@ export class FeaturesController {
   @Auth()
   async httpUpdateStatus(@Query() query: UpdateFeatureStatusDto, @AuthUser() user: User): HttpResponse {
     await this.featuresService.status(query, user)
+    return { success: true }
+  }
+
+  @Delete(':id')
+  @Auth()
+  async httpDeleteFeature(@Param('id') featureId: string, @AuthUser() user: User): HttpResponse {
+    await this.featuresService.delete(featureId, user)
     return { success: true }
   }
 }

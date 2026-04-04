@@ -12,6 +12,12 @@ export class CannotModifyProjectError extends BadRequestException {
   }
 }
 
+export class CannotModifyFeatureError extends BadRequestException {
+  constructor() {
+    super({ error: 'CannotModifyFeature' })
+  }
+}
+
 export class FeatureNotFoundError extends BadRequestException {
   constructor() {
     super({ error: 'FeatureNotFound' })
