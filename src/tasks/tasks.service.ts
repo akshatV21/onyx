@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common'
 import { DatabaseService } from 'src/database/database.service'
 import { CreateTaskDto } from './dtos/create-task.dto'
 import { User } from 'src/utils/types'
-import { CannotModifyProjectError, FeatureNotFoundError } from './tasks.errors'
+import { CannotModifyProjectError, FeatureNotFoundError, TaskNotFoundError } from './tasks.errors'
 import { QueryTasksDto } from './dtos/query-tasks.dto'
+import { ProjectStatus, TaskStatus } from 'generated/prisma/enums'
 
 @Injectable()
 export class TasksService {
@@ -58,5 +59,29 @@ export class TasksService {
     }
 
     return { tasks, cursor }
+  }
+
+  async delete(taskId: string, user: User) {
+    const task = await this.db.task.findUnique({
+      where: { id: taskId },
+      select: { featureId: true, project: { select: { id: true, userId: true, status: true } }, status: true },
+    })
+
+    if (!task || task.project.userId !== user.id) throw new TaskNotFoundError()
+    if (task.project.status !== ProjectStatus.planning && task.project.status !== ProjectStatus.active)
+      throw new CannotModifyProjectError()
+
+    const completed = task.status === TaskStatus.completed
+    const data = {
+      ttotal: { decrement: 1 },
+      ttodo: completed ? undefined : { decrement: 1 },
+      tcompleted: completed ? { decrement: 1 } : undefined,
+    }
+
+    await this.db.$transaction([
+      this.db.task.delete({ where: { id: taskId } }),
+      this.db.projectStats.update({ where: { projectId: task.project.id }, data }),
+      this.db.featureStats.update({ where: { featureId: task.featureId }, data }),
+    ])
   }
 }

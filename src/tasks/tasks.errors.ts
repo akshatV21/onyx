@@ -11,3 +11,9 @@ export class FeatureNotFoundError extends BadRequestException {
     super({ error: 'FeatureNotFound' })
   }
 }
+
+export class TaskNotFoundError extends BadRequestException {
+  constructor() {
+    super({ error: 'TaskNotFound' })
+  }
+}
