@@ -12,6 +12,7 @@ import { QueryFeaturesDto } from './dtos/query-features.dto'
 import { UpdateFeaturePriorityDto } from './dtos/update-priority.dto'
 import { UpdateFeatureStatusDto } from './dtos/update-status.dto'
 import { FeatureStatus, ProjectStatus } from 'generated/prisma/enums'
+import { featureIsLocked, projectIsLocked } from 'src/utils/functions'
 
 @Injectable()
 export class FeaturesService {
@@ -24,7 +25,7 @@ export class FeaturesService {
     })
 
     if (!project) throw new ProjectNotFoundError()
-    if (project.status === 'archived' || project.status === 'completed') throw new CannotModifyProjectError()
+    if (projectIsLocked(project.status)) throw new CannotModifyProjectError()
 
     const feature = await this.db.$transaction(async txn => {
       const feature = await txn.feature.create({ data })
@@ -78,10 +79,8 @@ export class FeaturesService {
     })
 
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
-    if (feature.status !== FeatureStatus.planned && feature.status !== FeatureStatus.in_progress)
-      throw new CannotModifyFeatureError()
-    if (feature.project.status !== ProjectStatus.planning && feature.project.status !== ProjectStatus.active)
-      throw new CannotModifyProjectError()
+    if (projectIsLocked(feature.project.status)) throw new CannotModifyProjectError()
+    if (featureIsLocked(feature.status)) throw new CannotModifyFeatureError()
 
     await this.db.feature.update({ where: { id: data.featureId }, data: { priority: data.priority } })
   }
@@ -93,8 +92,7 @@ export class FeaturesService {
     })
 
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
-    if (feature.project.status !== ProjectStatus.planning && feature.project.status !== ProjectStatus.active)
-      throw new CannotModifyProjectError()
+    if (projectIsLocked(feature.project.status)) throw new CannotModifyProjectError()
 
     await this.db.$transaction([
       this.db.feature.update({ where: { id: data.featureId }, data: { status: data.status } }),
@@ -116,12 +114,8 @@ export class FeaturesService {
     })
 
     if (!feature || feature.project.userId !== user.id) throw new FeatureNotFoundError()
-
-    if (feature.status !== FeatureStatus.planned && feature.status !== FeatureStatus.in_progress)
-      throw new CannotModifyFeatureError()
-
-    if (feature.project.status !== ProjectStatus.planning && feature.project.status !== ProjectStatus.active)
-      throw new CannotModifyProjectError()
+    if (projectIsLocked(feature.project.status)) throw new CannotModifyProjectError()
+    if (featureIsLocked(feature.status)) throw new CannotModifyFeatureError()
 
     await this.db.$transaction([
       this.db.feature.delete({ where: { id: featureId } }),
